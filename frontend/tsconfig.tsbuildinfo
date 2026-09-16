@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/api.ts","./src/appdata.tsx","./src/main.tsx","./src/telegram.ts","./src/types.ts","./src/vite-env.d.ts","./src/components/index.tsx","./src/i18n/index.tsx","./src/i18n/locales.ts","./src/pages/balance.tsx","./src/pages/comingsoonpages.tsx","./src/pages/home.tsx","./src/pages/profile.tsx","./src/pages/settings.tsx"],"version":"5.9.3"}

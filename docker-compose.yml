@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: city_tycoon_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: city_tycoon
+      POSTGRES_PASSWORD: city_tycoon
+      POSTGRES_DB: city_tycoon
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U city_tycoon -d city_tycoon"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: city_tycoon_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: city_tycoon_bot
+    restart: unless-stopped
+    command: python -m bot.main
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://city_tycoon:city_tycoon@postgres:5432/city_tycoon
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
