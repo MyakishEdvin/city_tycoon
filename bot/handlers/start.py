@@ -33,6 +33,7 @@ async def cmd_start(message: Message, command: CommandObject, session: AsyncSess
         username=message.from_user.username,
         first_name=message.from_user.first_name,
         referral_code=referral_code,
+        language_code=message.from_user.language_code,
     )
 
     display_name = message.from_user.first_name or message.from_user.username or "Tycoon"

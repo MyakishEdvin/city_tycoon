@@ -20,6 +20,7 @@ from database.models.city import build_starting_city
 from database.models.transaction import Transaction
 from database.models.user import User
 from game.economy import STARTING_BALANCE, TransactionType
+from game.localization import SUPPORTED_LANGUAGES, normalize_language_code
 
 logger = logging.getLogger("city_tycoon.user_service")
 
@@ -47,6 +48,7 @@ class UserService:
         username: str | None,
         first_name: str | None,
         referral_code: str | None = None,
+        language_code: str | None = None,
     ) -> tuple[User, bool]:
         """
         Fetch the user for this telegram_id, creating it if it doesn't
@@ -58,11 +60,17 @@ class UserService:
         enforced at the database level via the unique index on
         telegram_id, so even a race between two concurrent /start
         updates for the same user cannot create two rows.
+
+        `language_code` (Telegram's raw language_code, e.g. "uk", "en-US")
+        is only used to seed the language on first registration — it is
+        never applied to an existing user, since language is a sticky
+        user preference from that point on (see set_language).
         """
         existing = await self.get_by_telegram_id(telegram_id)
         if existing is not None:
             # Keep denormalized profile fields fresh, and record activity,
-            # but never touch progression fields (money, level, xp, ...).
+            # but never touch progression fields (money, level, xp, ...)
+            # or the user's chosen language.
             existing.username = username
             existing.first_name = first_name
             existing.last_active_at = datetime.datetime.now(datetime.timezone.utc)
@@ -81,6 +89,7 @@ class UserService:
             username=username,
             first_name=first_name,
             referred_by_id=referred_by.id if referred_by else None,
+            language=normalize_language_code(language_code),
         )
         self.session.add(new_user)
         try:
@@ -127,3 +136,11 @@ class UserService:
     async def touch_activity(self, user: User) -> None:
         user.last_active_at = datetime.datetime.now(datetime.timezone.utc)
         await self.session.commit()
+
+    async def set_language(self, user: User, language: str) -> User:
+        if language not in SUPPORTED_LANGUAGES:
+            raise ValueError(f"Unsupported language: {language}")
+        user.language = language
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user

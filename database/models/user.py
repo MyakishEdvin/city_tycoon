@@ -18,6 +18,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.database import Base
 from game.economy import STARTING_BALANCE, STARTING_ENERGY
+from game.localization import DEFAULT_LANGUAGE
 
 # Re-exported so existing `from database.models.user import STARTING_BALANCE`
 # imports keep working — game/economy.py is now the source of truth.
@@ -48,6 +49,14 @@ class User(Base):
     reputation: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     energy: Mapped[int] = mapped_column(Integer, default=STARTING_ENERGY, nullable=False)
     daily_streak: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # UI language — one of game.localization.SUPPORTED_LANGUAGES. Set once
+    # at registration (from Telegram's language_code when available) and
+    # afterwards only ever changed by explicit user action (Settings
+    # screen or /language), never overwritten by a later /start.
+    language: Mapped[str] = mapped_column(
+        String(5), default=DEFAULT_LANGUAGE, nullable=False
+    )
 
     referral_code: Mapped[str] = mapped_column(
         String(16), unique=True, index=True, default=_generate_referral_code, nullable=False

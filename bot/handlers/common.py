@@ -39,6 +39,7 @@ HELP_TEXT = (
     "/transactions — recent balance history\n"
     "/rating — leaderboards\n"
     "/events — current events\n"
+    "/language — change your language\n"
     "/settings — notification preferences\n"
     "/help — this message\n\n"
     "Use the menu below or tap 🏙️ OPEN CITY to play."
@@ -59,9 +60,16 @@ async def cmd_help(message: Message) -> None:
 
 
 @router.message(Command("settings"))
-async def cmd_settings(message: Message) -> None:
+async def cmd_settings(message: Message, session: AsyncSession) -> None:
+    if message.from_user is None:
+        return
+
+    user = await UserService(session).get_by_telegram_id(message.from_user.id)
+    language_line = f"🌐 Language: {user.language} (use /language to change)\n" if user else ""
     await message.answer(
-        "⚙️ <b>Settings</b>\n\nNotification preferences are coming in a future update."
+        f"⚙️ <b>Settings</b>\n\n"
+        f"{language_line}"
+        f"Notification preferences are coming in a future update."
     )
 
 
