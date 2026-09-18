@@ -7,6 +7,10 @@ from pydantic import BaseModel, ConfigDict
 
 class CityOut(BaseModel):
     unlocked_districts: list[str]
+    population: int
+    # Always 0 until the building system (next phase) adds a buildings
+    # table — this is an honest current count, not a placeholder value.
+    building_count: int
 
 
 class MeResponse(BaseModel):
@@ -15,6 +19,8 @@ class MeResponse(BaseModel):
     first_name: str | None
     level: int
     xp: int
+    xp_for_next_level: int
+    level_progress: float
     money: int
     reputation: int
     energy: int

@@ -106,6 +106,16 @@ class TransactionService:
 
         if balance_after < 0:
             await self.session.rollback()
+            # Rollback expires every attribute SQLAlchemy tracked for
+            # `user` in this transaction (including its PK, from the
+            # perspective of plain attribute access — the identity key
+            # used internally by refresh()/get() is separate and always
+            # intact, but a normal `user.id`/`user.money` access is not).
+            # Refresh now so the caller can keep using this exact object
+            # immediately after catching the exception, without hitting
+            # "MissingGreenlet: greenlet_spawn has not been called" on
+            # the next attribute access outside of an awaited ORM call.
+            await self.session.refresh(user)
             raise InsufficientFundsError(
                 user_id=user_id, balance=balance_before, requested=-delta
             )
@@ -139,6 +149,9 @@ class TransactionService:
                         user_id,
                     )
                     return existing, False
+            # Same reasoning as the insufficient-funds branch above: leave
+            # `user` safely re-usable for the caller before propagating.
+            await self.session.refresh(user)
             raise
 
         await self.session.refresh(transaction)

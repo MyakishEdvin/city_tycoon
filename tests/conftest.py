@@ -20,7 +20,7 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from database.database import Base
-import database.models  # noqa: F401  (registers every model on Base.metadata)
+import city_tycoon.database.models.init  # noqa: F401  (registers every model on Base.metadata)
 
 
 @pytest_asyncio.fixture

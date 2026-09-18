@@ -11,6 +11,7 @@ from database.models.user_service import UserService
 from game.economy import (
     DEFAULT_UNLOCKED_DISTRICTS,
     STARTING_BALANCE,
+    STARTING_POPULATION,
     InsufficientFundsError,
     TransactionType,
 )
@@ -24,6 +25,7 @@ async def test_registration_creates_starting_city_and_transaction(session):
     city = await CityService(session).get_by_user_id(user.id)
     assert city is not None
     assert city.unlocked_districts == DEFAULT_UNLOCKED_DISTRICTS
+    assert city.population == STARTING_POPULATION
 
     history = await TransactionService(session).get_history(user.id)
     assert len(history) == 1

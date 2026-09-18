@@ -1,5 +1,7 @@
 export interface CityOut {
   unlocked_districts: string[];
+  population: number;
+  building_count: number;
 }
 
 export interface MeResponse {
@@ -8,6 +10,8 @@ export interface MeResponse {
   first_name: string | null;
   level: number;
   xp: number;
+  xp_for_next_level: number;
+  level_progress: number;
   money: number;
   reputation: number;
   energy: number;

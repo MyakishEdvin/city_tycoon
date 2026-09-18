@@ -1,9 +1,8 @@
 """
 /help, /settings, and placeholder responses for commands/buttons whose real
-implementation lands in later phases (city, business, inventory, quests,
-leaderboard, events). Keeping them wired up now means the menu is fully
-clickable from Phase 1 onward instead of dead buttons — each placeholder
-will be replaced with real logic in its own phase.
+implementation lands in later phases (business, inventory, quests,
+leaderboard, events). The city/buildings feature has its own module,
+bot/handlers/city.py, once it grew past a one-line placeholder.
 """
 
 from __future__ import annotations
@@ -16,41 +15,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot.config import settings
 from bot.keyboards.main_menu import (
     BTN_BUSINESS,
-    BTN_CITY,
     BTN_EVENTS,
     BTN_INVENTORY,
     BTN_LEADERBOARD,
     BTN_QUESTS,
     OPEN_CITY_LABEL,
 )
-from database.models.city_service import CityService
 from database.models.user_service import UserService
 
 router = Router(name="common")
 
 HELP_TEXT = (
-    "🏙️ <b>CITY TYCOON — Help</b>\n\n"
-    "/start — register or return to your city\n"
-    "/profile — view your stats\n"
-    "/city — view your city and districts\n"
-    "/business — manage your businesses\n"
-    "/inventory — view your items\n"
-    "/tasks — view your quests\n"
-    "/transactions — recent balance history\n"
-    "/rating — leaderboards\n"
-    "/events — current events\n"
-    "/language — change your language\n"
-    "/settings — notification preferences\n"
-    "/help — this message\n\n"
-    "Use the menu below or tap 🏙️ OPEN CITY to play."
+    "🏙 <b>CITY TYCOON — Помощь</b>\n\n"
+    "/start — регистрация или возврат в город\n"
+    "/profile — ваша статистика\n"
+    "/city — ваш город и здания\n"
+    "/business — управление бизнесом\n"
+    "/inventory — ваш инвентарь\n"
+    "/tasks — ваши задания\n"
+    "/transactions — история операций\n"
+    "/rating — таблица лидеров\n"
+    "/events — текущие события\n"
+    "/language — сменить язык\n"
+    "/settings — настройки уведомлений\n"
+    "/help — это сообщение\n\n"
+    "Используйте меню ниже или нажмите 🏙 ОТКРЫТЬ ГОРОД, чтобы играть."
 )
 
 _COMING_SOON = {
-    "business": ("💼 <b>Business</b>\n\nBusiness management arrives in the next update!"),
-    "inventory": ("📦 <b>Inventory</b>\n\nYour inventory is empty for now — coming soon!"),
-    "tasks": ("🎯 <b>Quests</b>\n\nDaily and weekly quests are coming soon!"),
-    "rating": ("🏆 <b>Leaderboard</b>\n\nLeaderboards are coming soon!"),
-    "events": ("🔥 <b>Events</b>\n\nWeekly events are coming soon!"),
+    "business": "💼 <b>Бизнес</b>\n\nУправление бизнесом появится в следующем обновлении!",
+    "inventory": "📦 <b>Инвентарь</b>\n\nВаш инвентарь пока пуст — скоро здесь что-то появится!",
+    "tasks": "🎯 <b>Задания</b>\n\nЕжедневные и еженедельные задания скоро появятся!",
+    "rating": "🏆 <b>Рейтинг</b>\n\nТаблица лидеров скоро появится!",
+    "events": "🔥 <b>События</b>\n\nЕженедельные события скоро появятся!",
 }
 
 
@@ -65,43 +62,13 @@ async def cmd_settings(message: Message, session: AsyncSession) -> None:
         return
 
     user = await UserService(session).get_by_telegram_id(message.from_user.id)
-    language_line = f"🌐 Language: {user.language} (use /language to change)\n" if user else ""
-    await message.answer(
-        f"⚙️ <b>Settings</b>\n\n"
-        f"{language_line}"
-        f"Notification preferences are coming in a future update."
+    language_line = (
+        f"🌐 Язык: {user.language} (используйте /language, чтобы изменить)\n" if user else ""
     )
-
-
-@router.message(Command("city"))
-@router.message(F.text == BTN_CITY)
-async def city_view(message: Message, session: AsyncSession) -> None:
-    """
-    Real basic city ownership data (districts owned). The full city view
-    — buildings, per-district income, unlock progress — arrives with the
-    business/city phase; this shows what's actually in the database now.
-    """
-    if message.from_user is None:
-        return
-
-    user = await UserService(session).get_by_telegram_id(message.from_user.id)
-    if user is None:
-        await message.answer("You haven't started your city yet — send /start first!")
-        return
-
-    city = await CityService(session).get_by_user_id(user.id)
-    if city is None:
-        # Should never happen for a registered user, but don't crash the
-        # handler if it somehow does.
-        await message.answer("Your city record is missing — try /start again.")
-        return
-
-    district_names = CityService.display_names(city)
-    districts_text = "\n".join(f"🏘️ {name}" for name in district_names)
     await message.answer(
-        f"🏙️ <b>Your City</b>\n\n"
-        f"Districts owned ({len(district_names)}):\n{districts_text}\n\n"
-        f"Buildings and business management are coming in the next update!"
+        f"⚙️ <b>Настройки</b>\n\n"
+        f"{language_line}"
+        f"Настройки уведомлений появятся в следующем обновлении."
     )
 
 
@@ -145,6 +112,6 @@ async def open_city_fallback(message: Message) -> None:
     if settings.webapp_configured:
         return
     await message.answer(
-        "🏙️ The Mini App isn't deployed yet in this environment. "
-        "Set WEBAPP_URL in .env once it's live (see Phase 3)."
+        "🏙 Мини-приложение пока не развёрнуто в этом окружении. "
+        "Укажите WEBAPP_URL в .env, когда оно будет готово."
     )

@@ -3,7 +3,7 @@
 
 Works identically in private chats and groups: registration is always
 keyed by the sending user's telegram_id, never by chat_id. (Per-group
-state is its own subsystem, added in Phase 13.)
+state is its own subsystem, added in a later phase.)
 """
 
 from __future__ import annotations
@@ -36,27 +36,27 @@ async def cmd_start(message: Message, command: CommandObject, session: AsyncSess
         language_code=message.from_user.language_code,
     )
 
-    display_name = message.from_user.first_name or message.from_user.username or "Tycoon"
+    display_name = message.from_user.first_name or message.from_user.username or "Магнат"
 
     if created:
         text = (
-            f"🏙️ <b>Welcome to CITY TYCOON, {display_name}!</b>\n\n"
-            f"You're starting with:\n"
+            f"🏙 <b>Добро пожаловать в CITY TYCOON, {display_name}!</b>\n\n"
+            f"Вы начинаете с:\n"
             f"💰 <b>${user.money:,}</b>\n"
-            f"🏠 A small apartment in Old Town\n"
-            f"⭐ Level {user.level}\n\n"
-            f"Your referral code: <code>{user.referral_code}</code>\n"
-            f"Share it with friends: "
+            f"🏠 небольшой квартирой в Старом городе\n"
+            f"⭐ Уровень {user.level}\n\n"
+            f"Ваш реферальный код: <code>{user.referral_code}</code>\n"
+            f"Поделитесь с друзьями: "
             f"<code>https://t.me/YourBotUsername?start=ref_{user.referral_code}</code>\n\n"
-            f"Tap <b>🏙️ OPEN CITY</b> below to start building your empire, "
-            f"or use the menu to check your profile, business, and quests."
+            f"Нажмите <b>🏙 ОТКРЫТЬ ГОРОД</b> ниже, чтобы начать строить свою империю, "
+            f"или используйте меню, чтобы посмотреть профиль, бизнес и задания."
         )
     else:
         text = (
-            f"👋 Welcome back, {display_name}!\n\n"
-            f"💰 Balance: <b>${user.money:,}</b>\n"
-            f"⭐ Level {user.level}\n\n"
-            f"Tap <b>🏙️ OPEN CITY</b> to keep building, or use the menu below."
+            f"👋 С возвращением, {display_name}!\n\n"
+            f"💰 Баланс: <b>${user.money:,}</b>\n"
+            f"⭐ Уровень {user.level}\n\n"
+            f"Нажмите <b>🏙 ОТКРЫТЬ ГОРОД</b>, чтобы продолжить строить, или используйте меню ниже."
         )
 
     await message.answer(text, reply_markup=build_main_menu())

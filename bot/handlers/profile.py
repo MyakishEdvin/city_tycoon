@@ -1,9 +1,5 @@
 """
-/profile command and the "👤 Profile" keyboard button.
-
-Income-per-hour, achievements, and inventory counts are wired in once
-businesses (Phase 2) and inventory (Phase 9) exist. For now this shows
-everything the User model currently tracks.
+/profile command and the "👤 Профиль" keyboard button.
 """
 
 from __future__ import annotations
@@ -23,26 +19,35 @@ router = Router(name="profile")
 
 RECENT_TRANSACTIONS_SHOWN = 5
 
+_TRANSACTION_LABELS: dict[str, str] = {
+    "starting_balance": "Стартовый баланс",
+    "admin_credit": "Начисление",
+    "admin_debit": "Списание",
+    "building_purchase": "Постройка здания",
+    "building_upgrade": "Улучшение здания",
+    "building_income": "Доход от зданий",
+}
+
 
 def _format_profile(user, display_name: str, district_count: int) -> str:
     username_line = f"@{user.username}" if user.username else display_name
     return (
         f"👤 <b>{username_line}</b>\n\n"
-        f"⭐ Level {user.level} ({user.xp} XP)\n"
+        f"⭐ Уровень {user.level} ({user.xp} XP)\n"
         f"💰 ${user.money:,}\n"
-        f"🏆 Reputation: {user.reputation}\n"
-        f"⚡ Energy: {user.energy}\n"
-        f"🔥 Streak: {user.daily_streak} days\n"
-        f"🏙️ Districts owned: {district_count}\n\n"
-        f"🔗 Referral code: <code>{user.referral_code}</code>\n"
-        f"📅 Playing since: {user.created_at:%Y-%m-%d}"
+        f"🏆 Репутация: {user.reputation}\n"
+        f"⚡ Энергия: {user.energy}\n"
+        f"🔥 Серия входов: {user.daily_streak} дн.\n"
+        f"🏙 Районов открыто: {district_count}\n\n"
+        f"🔗 Реферальный код: <code>{user.referral_code}</code>\n"
+        f"📅 В игре с: {user.created_at:%Y-%m-%d}"
     )
 
 
 def _format_transaction_line(tx: Transaction) -> str:
     sign = "+" if tx.amount >= 0 else "-"
-    label = tx.type.replace("_", " ").title()
-    return f"{sign}${abs(tx.amount):,} — {label} ({tx.created_at:%b %d, %H:%M})"
+    label = _TRANSACTION_LABELS.get(tx.type, tx.type.replace("_", " "))
+    return f"{sign}${abs(tx.amount):,} — {label} ({tx.created_at:%d.%m, %H:%M})"
 
 
 async def _send_profile(message: Message, session: AsyncSession) -> None:
@@ -53,13 +58,13 @@ async def _send_profile(message: Message, session: AsyncSession) -> None:
     user = await service.get_by_telegram_id(message.from_user.id)
 
     if user is None:
-        await message.answer("You haven't started your city yet — send /start first!")
+        await message.answer("Вы ещё не начали игру — отправьте /start!")
         return
 
     await service.touch_activity(user)
     city = await CityService(session).get_by_user_id(user.id)
     district_count = len(city.unlocked_districts) if city else 0
-    display_name = message.from_user.first_name or message.from_user.username or "Tycoon"
+    display_name = message.from_user.first_name or message.from_user.username or "Магнат"
     await message.answer(_format_profile(user, display_name, district_count))
 
 
@@ -82,7 +87,7 @@ async def btn_balance(message: Message, session: AsyncSession) -> None:
     user = await service.get_by_telegram_id(message.from_user.id)
 
     if user is None:
-        await message.answer("You haven't started your city yet — send /start first!")
+        await message.answer("Вы ещё не начали игру — отправьте /start!")
         return
 
     await service.touch_activity(user)
@@ -91,10 +96,9 @@ async def btn_balance(message: Message, session: AsyncSession) -> None:
         user.id, limit=RECENT_TRANSACTIONS_SHOWN
     )
 
-    # Income-per-hour is added once businesses exist in Phase 2.
-    lines = [f"💰 Balance: <b>${user.money:,}</b>"]
+    lines = [f"💰 Баланс: <b>${user.money:,}</b>"]
     if transactions:
-        lines.append("\n📜 <b>Recent transactions</b>")
+        lines.append("\n📜 <b>Последние операции</b>")
         lines.extend(_format_transaction_line(tx) for tx in transactions)
     await message.answer("\n".join(lines))
 
@@ -107,16 +111,16 @@ async def cmd_transactions(message: Message, session: AsyncSession) -> None:
     service = UserService(session)
     user = await service.get_by_telegram_id(message.from_user.id)
     if user is None:
-        await message.answer("You haven't started your city yet — send /start first!")
+        await message.answer("Вы ещё не начали игру — отправьте /start!")
         return
 
     await service.touch_activity(user)
     transactions = await TransactionService(session).get_history(user.id, limit=20)
 
     if not transactions:
-        await message.answer("No transactions yet.")
+        await message.answer("Операций пока нет.")
         return
 
-    lines = ["📜 <b>Transaction history</b>\n"]
+    lines = ["📜 <b>История операций</b>\n"]
     lines.extend(_format_transaction_line(tx) for tx in transactions)
     await message.answer("\n".join(lines))

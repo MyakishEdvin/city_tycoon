@@ -22,11 +22,13 @@ from backend.schemas import (
     TransactionHistoryResponse,
     TransactionOut,
 )
+from database.models.building_service import BuildingService
 from database.models.city_service import CityService
 from database.models.transaction_service import TransactionService
 from database.models.user import User
 from database.models.user_service import UserService
 from game.localization import SUPPORTED_LANGUAGES
+from game.progression import level_progress_fraction, xp_required_for_level
 
 router = APIRouter(prefix="/api", tags=["mini-app"])
 
@@ -51,19 +53,29 @@ async def _resolve_user(tg_user: TelegramWebAppUser, session: AsyncSession) -> U
 
 async def _build_me_response(user: User, session: AsyncSession) -> MeResponse:
     city = await CityService(session).get_by_user_id(user.id)
+    building_count = 0
+    if city is not None:
+        buildings = await BuildingService(session).get_buildings(city.id)
+        building_count = len(buildings)
     return MeResponse(
         telegram_id=user.telegram_id,
         username=user.username,
         first_name=user.first_name,
         level=user.level,
         xp=user.xp,
+        xp_for_next_level=xp_required_for_level(user.level),
+        level_progress=level_progress_fraction(user.level, user.xp),
         money=user.money,
         reputation=user.reputation,
         energy=user.energy,
         daily_streak=user.daily_streak,
         language=user.language,
         referral_code=user.referral_code,
-        city=CityOut(unlocked_districts=city.unlocked_districts if city else []),
+        city=CityOut(
+        unlocked_districts=city.unlocked_districts if city else [],
+        population=city.population if city else 0,
+        building_count=building_count,
+        ),
     )
 
 

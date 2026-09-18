@@ -1,56 +1,58 @@
 """
-CITY TYCOON Mini App backend.
+CITY TYCOON bot entrypoint.
 
-Run with:  uvicorn backend.main:app --reload --port 8000
+Run with:  python -m bot.main
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
 
-from backend.api.router import router as api_router
 from bot.config import settings
+from bot.handlers import city, common, language, profile, start
+from bot.middlewares.database import DatabaseSessionMiddleware
 
 logging.basicConfig(
     level=settings.LOG_LEVEL,
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
 )
-logger = logging.getLogger("city_tycoon.backend")
+logger = logging.getLogger("city_tycoon.bot")
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+async def main() -> None:
+    bot = Bot(
+        token=settings.BOT_TOKEN,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
+    dp = Dispatcher()
+
+    dp.update.middleware(DatabaseSessionMiddleware())
+
+    # Order matters only where filters could overlap; these don't.
+    dp.include_router(start.router)
+    dp.include_router(profile.router)
+    dp.include_router(language.router)
+    dp.include_router(city.router)
+    dp.include_router(common.router)
+
     logger.info(
-        "Starting CITY TYCOON backend | environment=%s | webapp_configured=%s",
+        "Starting CITY TYCOON bot | environment=%s | webapp_configured=%s",
         settings.ENVIRONMENT,
         settings.webapp_configured,
     )
-    yield
-    logger.info("Shutting down CITY TYCOON backend")
+
+    await bot.delete_webhook(drop_pending_updates=True)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        logger.info("Shutting down CITY TYCOON bot")
+        await bot.session.close()
 
 
-app = FastAPI(title="CITY TYCOON API", lifespan=lifespan)
-
-# In production WEBAPP_URL is the Mini App's own deployed origin — that's
-# the only origin that legitimately needs to call this API. Falls back to
-# "*" only for local development when WEBAPP_URL isn't set yet.
-_allowed_origins = [settings.WEBAPP_URL] if settings.webapp_configured else ["*"]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_allowed_origins,
-    allow_credentials=False,
-    allow_methods=["GET", "PATCH"],
-    allow_headers=["Authorization", "X-Telegram-Init-Data", "Content-Type"],
-)
-
-app.include_router(api_router)
-
-
-@app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -3,9 +3,7 @@
 
 Lets a player change their stored language preference (the same
 `User.language` field the Mini App's Settings screen writes to) directly
-from the bot, via an inline keyboard. This does not retranslate every
-existing bot message — that's a larger follow-up — but the preference
-itself is real, shared, and immediately reflected in the Mini App.
+from the bot, via an inline keyboard.
 """
 
 from __future__ import annotations
@@ -47,12 +45,12 @@ async def cmd_language(message: Message, session: AsyncSession) -> None:
 
     user = await UserService(session).get_by_telegram_id(message.from_user.id)
     if user is None:
-        await message.answer("You haven't started your city yet — send /start first!")
+        await message.answer("Вы ещё не начали игру — отправьте /start!")
         return
 
     current = _LANGUAGE_LABELS.get(user.language, user.language)
     await message.answer(
-        f"🌐 Current language: {current}\n\nChoose a new one:",
+        f"🌐 Текущий язык: {current}\n\nВыберите новый:",
         reply_markup=_language_keyboard(),
     )
 
@@ -64,17 +62,17 @@ async def on_language_selected(callback: CallbackQuery, session: AsyncSession) -
 
     language = callback.data.removeprefix("set_language:")
     if language not in SUPPORTED_LANGUAGES:
-        await callback.answer("Unsupported language", show_alert=True)
+        await callback.answer("Неподдерживаемый язык", show_alert=True)
         return
 
     service = UserService(session)
     user = await service.get_by_telegram_id(callback.from_user.id)
     if user is None:
-        await callback.answer("Send /start first!", show_alert=True)
+        await callback.answer("Сначала отправьте /start!", show_alert=True)
         return
 
     await service.set_language(user, language)
     label = _LANGUAGE_LABELS[language]
-    await callback.answer(f"Language set to {label}")
+    await callback.answer(f"Язык изменён на {label}")
     if callback.message is not None:
-        await callback.message.edit_text(f"🌐 Language set to {label}")
+        await callback.message.edit_text(f"🌐 Язык изменён на {label}")

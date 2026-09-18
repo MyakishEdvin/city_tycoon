@@ -28,7 +28,27 @@ export default function Home(): React.JSX.Element {
         <div className="hero-sub">
           {t("home.level")} {me.level}
         </div>
+        <div className="xp-bar">
+          <div
+            className="xp-bar-fill"
+            style={{ width: `${Math.round(me.level_progress * 100)}%` }}
+          />
+        </div>
+        <div className="hero-sub">
+          {me.xp} / {me.xp_for_next_level} XP
+        </div>
       </div>
+
+      <Card>
+        <div className="stat-row">
+          <span>{t("home.population")}</span>
+          <span>{me.city.population.toLocaleString()}</span>
+        </div>
+        <div className="stat-row">
+          <span>{t("home.buildings")}</span>
+          <span>{me.city.building_count}</span>
+        </div>
+      </Card>
 
       <Card>
         <h3>{t("home.districtsOwned")} ({me.city.unlocked_districts.length})</h3>

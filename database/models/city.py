@@ -15,7 +15,7 @@ from sqlalchemy import JSON, DateTime, ForeignKey, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.database import Base
-from game.economy import DEFAULT_UNLOCKED_DISTRICTS
+from game.economy import DEFAULT_UNLOCKED_DISTRICTS, STARTING_POPULATION
 
 
 class PlayerCity(Base):
@@ -36,6 +36,25 @@ class PlayerCity(Base):
         JSON, default=list, nullable=False
     )
 
+    # City-level stat (not identity, so it lives here rather than on
+    # User). Grown by houses/shops/factories at construction time (see
+    # game.economy.BuildingSpec.population_bonus).
+    population: Mapped[int] = mapped_column(
+        Integer, default=STARTING_POPULATION, nullable=False
+    )
+
+    # Anchor for on-demand passive income calculation (EconomyService):
+    # accumulated income = income_per_hour * hours since this timestamp,
+    # capped at MAX_OFFLINE_INCOME_HOURS. No background worker needed —
+    # this is advanced to "now" every time income is collected.
+    last_income_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    buildings: Mapped[list["PlayerBuilding"]] = relationship(  # noqa: F821
+        back_populates="city", cascade="all, delete-orphan", order_by="PlayerBuilding.id"
+    )
+
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -49,4 +68,5 @@ def build_starting_city(user_id: int) -> PlayerCity:
     return PlayerCity(
         user_id=user_id,
         unlocked_districts=list(DEFAULT_UNLOCKED_DISTRICTS),
+        population=STARTING_POPULATION,
     )

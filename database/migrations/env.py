@@ -13,7 +13,7 @@ from database.database import Base
 # Import every model here so Base.metadata is fully populated before
 # autogenerate compares it against the live database. database/models/__init__.py
 # imports all model classes, so this one import is enough going forward.
-import database.models  # noqa: F401
+import city_tycoon.database.models.init  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
